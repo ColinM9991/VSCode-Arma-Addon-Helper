@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
-import * as fs from 'fs';
-import * as fsp from 'fs/promises';
+import * as fs from 'fs/promises';
 import * as path from 'path';
 
 export function activate(context: vscode.ExtensionContext) {
@@ -11,13 +10,16 @@ export function activate(context: vscode.ExtensionContext) {
 
         const workspaceFolder = vscode.workspace.workspaceFolders![0].uri.fsPath;
         const addonsDirectory = path.join(workspaceFolder, 'addons');
-        if (!fs.existsSync(addonsDirectory)) {
+        const addonsExists = await fs.stat(addonsDirectory).then(() => true).catch(() => false);
+        if (!addonsExists) {
             vscode.window.showErrorMessage('No \'addons\' directory found');
+            return;
         }
 
-        const addonDirectories: fs.Dirent[] = (await fsp.readdir(addonsDirectory, { withFileTypes: true, })).filter((ent: fs.Dirent) => ent.isDirectory());
+        const addonDirectories = (await fs.readdir(addonsDirectory, { withFileTypes: true, })).filter(ent => ent.isDirectory());
         if (addonDirectories.length === 0) {
             vscode.window.showWarningMessage('No addons found in the \'addons\' directory');
+            return;
         }
 
         for (const directory of addonDirectories) {
@@ -44,7 +46,7 @@ export function activate(context: vscode.ExtensionContext) {
                 .map(fnc => `PREP(${fnc});`);
 
             const prepFile = path.join(addonDirectory, 'XEH_PREP.hpp');
-            await fsp.writeFile(prepFile, functions.join('\n').concat('\n'));
+            await fs.writeFile(prepFile, functions.join('\n').concat('\n'));
         }
     });
 
@@ -52,7 +54,7 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 async function getAllFiles(dirPath: string, arrayOfFiles: string[] = []): Promise<string[]> {
-    const files = await fsp.readdir(dirPath, { withFileTypes: true });
+    const files = await fs.readdir(dirPath, { withFileTypes: true });
 
     for (const file of files) {
         if (file.isDirectory()) {
