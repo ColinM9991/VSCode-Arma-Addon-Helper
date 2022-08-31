@@ -24,7 +24,7 @@ export function activate(context: vscode.ExtensionContext) {
 
             const scripts = getAllFiles(addonDirectory)
                 .map(f => path.parse(f))
-                .filter(f => f.name.startsWith('fnc_'));
+                .filter(f => f.ext === '.sqf' && f.name.startsWith('fnc_'));
 
             if (scripts.length === 0) {
                 vscode.window.showInformationMessage(`No functions found for addon '${directory.name}'`);
