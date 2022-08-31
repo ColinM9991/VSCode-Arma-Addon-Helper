@@ -2,7 +2,9 @@
   "name": "arma-addon-helper",
   "displayName": "Arma Addon Helper",
   "description": "Provides a series of commands and other useful utilities for speeding up the addon development process.",
-  "version": "0.0.1",
+  "version": "0.0.2",
+  "repository": "https://github.com/ColinM9991/VSCode-Arma-Addon-Helper",
+  "publisher": "ColinM999123",
   "engines": {
     "vscode": "^1.70.0"
   },

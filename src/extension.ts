@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
+import * as fsp from 'fs/promises';
 import * as path from 'path';
 
 export function activate(context: vscode.ExtensionContext) {
@@ -14,22 +15,27 @@ export function activate(context: vscode.ExtensionContext) {
             vscode.window.showErrorMessage('No \'addons\' directory found');
         };
 
-        const addonDirectories: fs.Dirent[] = fs.readdirSync(addonsDirectory, { withFileTypes: true, }).filter((ent: fs.Dirent) => ent.isDirectory());
+        const addonDirectories: fs.Dirent[] = (await fsp.readdir(addonsDirectory, { withFileTypes: true, })).filter((ent: fs.Dirent) => ent.isDirectory());
         if (addonDirectories.length === 0) {
             vscode.window.showWarningMessage('No addons found in the \'addons\' directory');
-        }
+        };
 
         for (const directory of addonDirectories) {
             const addonDirectory = path.join(addonsDirectory, directory.name);
 
-            const scripts = getAllFiles(addonDirectory)
+            const allFiles = await getAllFiles(addonDirectory);
+            if (allFiles.length === 0) {
+                continue;
+            };
+
+            const scripts = allFiles
                 .map(f => path.parse(f))
                 .filter(f => f.ext === '.sqf' && f.name.startsWith('fnc_'));
 
             if (scripts.length === 0) {
                 vscode.window.showInformationMessage(`No functions found for addon '${directory.name}'`);
                 continue;
-            }
+            };
 
             vscode.window.showInformationMessage(`Writing XEH_PREP for addon '${directory.name}'`);
 
@@ -38,23 +44,23 @@ export function activate(context: vscode.ExtensionContext) {
                 .map(fnc => `PREP(${fnc});`);
 
             const prepFile = path.join(addonDirectory, 'XEH_PREP.hpp');
-            fs.writeFileSync(prepFile, functions.join('\n').concat('\n'));
-        }
+            await fsp.writeFile(prepFile, functions.join('\n').concat('\n'));
+        };
     });
 
     context.subscriptions.push(disposable);
 }
 
-function getAllFiles(dirPath: string, arrayOfFiles: string[] = []) {
-    const files = fs.readdirSync(dirPath, { withFileTypes: true });
+async function getAllFiles(dirPath: string, arrayOfFiles: string[] = []): Promise<string[]> {
+    const files = await fsp.readdir(dirPath, { withFileTypes: true });
 
-    files.forEach(function (file) {
+    for (const file of files) {
         if (file.isDirectory()) {
-            arrayOfFiles = getAllFiles(path.join(dirPath, file.name), arrayOfFiles);
+            arrayOfFiles = await getAllFiles(path.join(dirPath, file.name), arrayOfFiles);
         } else {
             arrayOfFiles.push(path.join(dirPath, file.name));
-        }
-    });
+        };
+    };
 
     return arrayOfFiles;
 }
